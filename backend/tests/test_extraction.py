@@ -126,3 +126,11 @@ def test_different_known_product_in_roman_is_flagged():
     r = run("2 किलो चावल", roman="2 kilo chini")
     assert items(r) == [("Rice", 2, "kg")]
     assert r.items[0].needs_review and "Sugar" in r.items[0].review_reason
+
+
+def test_half_hours_compact_pm_and_verb_do():
+    r = run("2 kilo chawal kal shaam saadhe paanch baje")
+    assert items(r) == [("Rice", 2, "kg")] and r.delivery_time == "17:30"
+    assert run("2 kg rice today 6p.m.").delivery_time == "18:00"
+    r = run("chawal de do aur aadha kilo chini")
+    assert ("Sugar", 0.5, "kg") in items(r)

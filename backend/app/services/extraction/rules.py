@@ -21,7 +21,7 @@ NUMBER_RE = re.compile(r"^\d+(?:\.\d+)?$")
 
 def normalise(text: str) -> str:
     text = unicodedata.normalize("NFC", text or "").translate(DEVANAGARI_DIGITS).lower()
-    text = re.sub(r"\b([ap])\.\s?m\b\.?", r"\1m", text)
+    text = re.sub(r"(?<![a-z])([ap])\.\s?m\b\.?", r"\1m", text)
     text = re.sub(r"(?<=\d)(?=[^\d\s.:,])|(?<=[^\d\s.:,])(?=\d)", " ", text)
     text = re.sub(r"(?<!\d)[.:](?!\d)|[;।!?\"()\[\]]", " , ", text)
     text = re.sub(r",", " , ", text)
@@ -44,7 +44,8 @@ def _join_halves(tokens: list[str]) -> list[str]:
             out.append(f"{_number(tokens[i + 1]) + 0.5:g}")
             i += 2
             continue
-        if n is not None and i + 2 < len(tokens) and tokens[i + 1] in ("and", "aur", "और"):
+        after_verb = i > 0 and tokens[i - 1] in VERBS_BEFORE_DO and not NUMBER_RE.match(tokens[i])
+        if n is not None and not after_verb and i + 2 < len(tokens) and tokens[i + 1] in ("and", "aur", "और"):
             j = i + 3 if tokens[i + 2] == "a" and i + 3 < len(tokens) else i + 2
             if tokens[j] in HALF_WORDS:
                 out.append(f"{n + 0.5:g}")
@@ -205,8 +206,10 @@ class RuleBasedExtractor:
         while i < len(tokens):
             tok, nxt = tokens[i], tokens[i + 1] if i + 1 < len(tokens) else ""
             clock = CLOCK_RE.match(tok)
-            if not clock and nxt in CLOCK_MARKERS and _number(tok) is not None:
-                clock = CLOCK_RE.match(f"{_number(tok):g}")
+            if not clock and nxt in CLOCK_MARKERS:
+                n = float(tok) if NUMBER_RE.match(tok) else NUMBER_WORDS.get(tok)
+                if n is not None and 0 < n <= 12:  # "saadhe paanch" = 5.5 → 5:30
+                    clock = CLOCK_RE.match(f"{int(n)}:{round(n % 1 * 60):02d}")
             if tok in DATE_WORDS:
                 label, offset, ambiguous = DATE_WORDS[tok]
                 result.delivery_date = (date.fromisoformat(today) + timedelta(days=offset)).isoformat()
