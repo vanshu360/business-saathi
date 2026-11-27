@@ -39,6 +39,6 @@ def load_settings() -> Settings:
     return Settings(
         sarvam_api_key=os.getenv("SARVAM_API_KEY", "").strip(),
         data_dir=Path(os.getenv("DATA_DIR", "").strip() or default_data),
-        audio_retention_hours=_int_env("AUDIO_RETENTION_HOURS", 24),
+        audio_retention_hours=max(1, _int_env("AUDIO_RETENTION_HOURS", 24)),  # audio is needed for 3 requests
         timezone=os.getenv("APP_TIMEZONE", "").strip() or "Asia/Kolkata",
     )
