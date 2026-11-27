@@ -136,7 +136,8 @@ async function runOutput(app, id, output) {
   const visit = pageVisit;
   try {
     const t = await api.post(`/api/transcriptions/${id}/outputs/${output}`);
-    if (visit === pageVisit) renderResults(app, t);
+    if (visit !== pageVisit) return null;
+    renderResults(app, t);
     return t;
   } catch (err) {
     toast(err.message, true);
