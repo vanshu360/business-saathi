@@ -10,7 +10,8 @@ from typing import Optional
 from .base import CatalogueEntry, ExtractedItem, ExtractionResult
 from .vocabulary import (AM_PM, CLOCK_MARKERS, DATE_WORDS, DATIVE_MARKERS, HONORIFICS,
                          NUMBER_WORDS, PART_OF_DAY, PURPOSE_PAIRS, SEPARATORS, STOPWORDS,
-                         UNIT_LOOKUP, UNSUPPORTED_UNITS, VERBS_BEFORE_DO)
+                         UNIT_LOOKUP, UNSUPPORTED_UNITS, VERBS_BEFORE_DO,
+                         HALF_BEFORE, HALF_WORDS)
 
 DEVANAGARI_DIGITS = str.maketrans("०१२३४५६७८९", "0123456789")
 PHONE_RE = re.compile(r"(?:\+?91[\s-]?)?([6-9](?:[\s-]?\d){9})(?!\d)")
@@ -20,14 +21,42 @@ NUMBER_RE = re.compile(r"^\d+(?:\.\d+)?$")
 
 def normalise(text: str) -> str:
     text = unicodedata.normalize("NFC", text or "").translate(DEVANAGARI_DIGITS).lower()
+    text = re.sub(r"\b([ap])\.\s?m\b\.?", r"\1m", text)
     text = re.sub(r"(?<=\d)(?=[^\d\s.:,])|(?<=[^\d\s.:,])(?=\d)", " ", text)
     text = re.sub(r"(?<!\d)[.:](?!\d)|[;।!?\"()\[\]]", " , ", text)
     text = re.sub(r",", " , ", text)
     return text
 
 
+def _number(tok: str) -> Optional[float]:
+    if NUMBER_RE.match(tok):
+        return float(tok)
+    value = NUMBER_WORDS.get(tok)
+    return float(value) if value is not None and float(value).is_integer() else None
+
+
+def _join_halves(tokens: list[str]) -> list[str]:
+    """"one and a half" / "do aur aadha" / "saadhe teen" become one number, not two items."""
+    out, i = [], 0
+    while i < len(tokens):
+        n = _number(tokens[i])
+        if tokens[i] in HALF_BEFORE and i + 1 < len(tokens) and _number(tokens[i + 1]) is not None:
+            out.append(f"{_number(tokens[i + 1]) + 0.5:g}")
+            i += 2
+            continue
+        if n is not None and i + 2 < len(tokens) and tokens[i + 1] in ("and", "aur", "और"):
+            j = i + 3 if tokens[i + 2] == "a" and i + 3 < len(tokens) else i + 2
+            if tokens[j] in HALF_WORDS:
+                out.append(f"{n + 0.5:g}")
+                i = j + 1
+                continue
+        out.append(tokens[i])
+        i += 1
+    return out
+
+
 def tokenize(text: str) -> list[str]:
-    return [t.strip("'") for t in normalise(text).split() if t.strip("'")]
+    return _join_halves([t.strip("'") for t in normalise(text).split() if t.strip("'")])
 
 
 class Matcher:
@@ -176,6 +205,8 @@ class RuleBasedExtractor:
         while i < len(tokens):
             tok, nxt = tokens[i], tokens[i + 1] if i + 1 < len(tokens) else ""
             clock = CLOCK_RE.match(tok)
+            if not clock and nxt in CLOCK_MARKERS and _number(tok) is not None:
+                clock = CLOCK_RE.match(f"{_number(tok):g}")
             if tok in DATE_WORDS:
                 label, offset, ambiguous = DATE_WORDS[tok]
                 result.delivery_date = (date.fromisoformat(today) + timedelta(days=offset)).isoformat()
@@ -273,6 +304,8 @@ class RuleBasedExtractor:
                 if mine.product_id is None and theirs.product_id is not None:
                     mine.suggestion = theirs.product_name
                     mine.flag(f"{label} transcript suggests \"{theirs.product_name}\"")
+                elif mine.product_id and theirs.product_id and mine.product_id != theirs.product_id:
+                    mine.flag(f"{label} transcript says \"{theirs.product_name}\", please check the product")
                 if (mine.quantity, mine.unit) != (theirs.quantity, theirs.unit) and theirs.quantity is not None:
                     mine.flag(f"{label} transcript says {theirs.quantity:g} {theirs.unit or ''}".strip())
         elif other.items:

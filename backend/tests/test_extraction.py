@@ -106,3 +106,23 @@ def test_extract_endpoint_uses_database_catalogue(client):
 
 def test_extract_endpoint_requires_text(client):
     assert client.post("/api/extract", json={"original": "  "}).status_code == 422
+
+
+@pytest.mark.parametrize("text", ["one and a half kg rice", "ek aur aadha kilo chawal", "saadhe ek kilo chawal"])
+def test_compound_halves_are_one_quantity(text):
+    r = run(text)
+    assert items(r) == [("Rice", 1.5, "kg")]
+    assert not r.items[0].needs_review
+
+
+def test_word_hour_with_baje_and_dotted_pm():
+    r = run("2 kilo chawal kal shaam paanch baje")
+    assert r.delivery_time == "17:00"
+    r = run("2 kg rice tomorrow at 6 p.m.")
+    assert items(r) == [("Rice", 2, "kg")] and r.delivery_time == "18:00"
+
+
+def test_different_known_product_in_roman_is_flagged():
+    r = run("2 किलो चावल", roman="2 kilo chini")
+    assert items(r) == [("Rice", 2, "kg")]
+    assert r.items[0].needs_review and "Sugar" in r.items[0].review_reason

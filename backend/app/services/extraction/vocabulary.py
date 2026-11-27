@@ -25,6 +25,9 @@ UNIT_LOOKUP = {word: unit for unit, words in UNIT_WORDS.items() for word in word
 UNSUPPORTED_UNITS = {"dozen", "darjan", "दर्जन", "dabba", "डब्बा", "box", "bottle", "botal",
                      "बोतल", "bori", "बोरी", "bag"}
 
+HALF_WORDS = {"half", "aadha", "adha", "आधा"}
+HALF_BEFORE = {"saadhe", "sadhe", "saade", "साढ़े", "साढे"}
+
 SEPARATORS = {",", "aur", "और", "and", "&", "phir", "fir", "फिर", "plus", "also", "तथा"}
 
 HONORIFICS = {"ji", "जी", "bhai", "भाई", "bhaiya", "भैया", "sahab", "साहब", "didi", "दीदी",
