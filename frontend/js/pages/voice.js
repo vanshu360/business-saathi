@@ -188,7 +188,9 @@ async function showReview(app, t) {
     slot.innerHTML = `<p class="notice warn">Could not read the order automatically (${html(err.message)}). Fill it in below.</p>${renderOrderForm({}, "Confirm and save order")}`;
   }
   const form = slot.querySelector("#order-form");
-  form.addEventListener("input", () => { form.dataset.edited = "1"; }, { once: true });
+  const markEdited = () => { form.dataset.edited = "1"; };
+  form.addEventListener("input", markEdited);
+  form.addEventListener("click", (e) => { if (e.target.closest("button:not([type=submit])")) markEdited(); });
   bindSaveOrder(form, () => ({ source: "voice", transcription_id: t.id }));
   slot.scrollIntoView({ behavior: "smooth", block: "start" });
 }
