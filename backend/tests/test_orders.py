@@ -188,3 +188,9 @@ def test_new_order_with_known_phone_and_other_name_is_refused(client):
     assert res.status_code == 400 and "Ramesh" in res.json()["detail"]
     order = client.post("/api/orders", json=manual_order(customer_name="ramesh", customer_phone="9876543211")).json()
     assert order["customer_name"] == "Ramesh"
+
+
+def test_capitalisation_correction_on_edit_is_saved(client):
+    oid = client.post("/api/orders", json=manual_order(customer_name="ramesh", customer_phone="9876543212")).json()["id"]
+    order = client.put(f"/api/orders/{oid}", json=manual_order(customer_name="Ramesh", customer_phone="9876543212")).json()
+    assert order["customer_name"] == "Ramesh"
