@@ -7,9 +7,11 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import Settings, load_settings
-from .database import init_db
+from .database import get_db, init_db
 from .errors import AppError
-from .routes import customers, dashboard, extract, orders, products, settings as settings_routes, system
+from .services.speech.sarvam import SarvamClient
+from .services.transcription import cleanup_expired_audio
+from .routes import customers, dashboard, extract, orders, products, settings as settings_routes, system, transcriptions
 
 FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
 
@@ -17,10 +19,13 @@ FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
 def create_app(settings: Optional[Settings] = None) -> FastAPI:
     settings = settings or load_settings()
     init_db(settings)
+    with get_db(settings) as conn:
+        cleanup_expired_audio(conn)
 
     app = FastAPI(title="Business Saathi", version="0.1.0")
     app.state.settings = settings
-    for module in (system, dashboard, settings_routes, products, customers, orders, extract):
+    app.state.speech_client = SarvamClient(settings.sarvam_api_key) if settings.sarvam_configured else None
+    for module in (system, dashboard, settings_routes, products, customers, orders, extract, transcriptions):
         app.include_router(module.router)
 
     @app.exception_handler(AppError)
