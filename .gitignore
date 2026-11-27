@@ -1,0 +1,16 @@
+# Secrets
+.env
+
+# Local data (database, recordings, backups)
+data/
+backups/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
