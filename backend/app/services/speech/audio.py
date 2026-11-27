@@ -15,7 +15,7 @@ def measure_seconds(path: Path) -> Optional[float]:
     if not shutil.which("ffmpeg"):
         return None
     try:
-        proc = subprocess.run(["ffmpeg", "-hide_banner", "-i",
+        proc = subprocess.run(["ffmpeg", "-hide_banner", "-protocol_whitelist", "file", "-i",
                                str(path), "-f", "null", "-"],
                               capture_output=True, text=True, timeout=20)
     except (subprocess.SubprocessError, OSError):
