@@ -7,15 +7,40 @@
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-  <main class="setup-check">
-    <h1>Business Saathi</h1>
-    <p>Voice-first order assistant for small shops.</p>
-    <div class="card">
-      <h2>System check</h2>
-      <p id="health">Checking server…</p>
-      <p id="sarvam"></p>
+  <a class="skip-link" href="#app">Skip to content</a>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="Main menu">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">BS</span>
+        <div>
+          <strong>Business Saathi</strong>
+          <small id="shop-name">My Shop</small>
+        </div>
+      </div>
+      <nav>
+        <a href="#/dashboard" data-route="dashboard">Dashboard</a>
+        <a href="#/voice" data-route="voice">New Voice Order</a>
+        <a href="#/orders/new" data-route="orders/new">Type an Order</a>
+        <a href="#/orders" data-route="orders">Saved Orders</a>
+      </nav>
+      <p class="sidebar-note">Single shop · local/demo use only</p>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button class="menu-toggle" id="menu-toggle" aria-controls="sidebar" aria-expanded="false">Menu</button>
+        <form class="search" id="global-search" role="search">
+          <label class="sr-only" for="global-search-input">Search orders</label>
+          <input id="global-search-input" type="search" placeholder="Search saved orders (name, phone, product)">
+          <button type="submit" class="btn btn-secondary">Search</button>
+        </form>
+      </header>
+      <div id="notices" class="notices" aria-live="polite"></div>
+      <main id="app" tabindex="-1"></main>
     </div>
-  </main>
-  <script src="/js/setup-check.js"></script>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="modal-root"></div>
+  <script type="module" src="/js/app.js"></script>
 </body>
 </html>

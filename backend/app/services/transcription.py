@@ -63,7 +63,8 @@ def create_from_upload(conn, settings: Settings, client, shop_id: int, audio: by
     mime = base_mime(mime)
     path = settings.audio_dir / f"{sha[:32]}.{EXTENSIONS.get(mime, 'bin')}"
     path.write_bytes(audio)
-    seconds = measure_seconds(path) or client_seconds
+    # Browsers' WebM files can under-report length; the larger value keeps cost and limit checks safe.
+    seconds = max(filter(None, [measure_seconds(path), client_seconds]), default=None)
     if not seconds or seconds <= 0:
         delete_file(str(path))
         raise InvalidRequest("Could not read the recording. Please record again.")
