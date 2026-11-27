@@ -83,6 +83,7 @@ def create_from_upload(conn, settings: Settings, client, shop_id: int, audio: by
 def process_output(conn, client, shop_id: int, tid: int, output: str) -> dict:
     if output not in MODES:
         raise NotFound("Unknown output")
+    cleanup_expired_audio(conn)
     row = repo.get(conn, shop_id, tid)
     if row is None:
         raise NotFound("Recording not found")

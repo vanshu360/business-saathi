@@ -199,3 +199,17 @@ def test_network_failure_does_not_crash():
     with pytest.raises(SpeechError) as err:
         mocked_client(handler).transcribe(b"a", "a.webm", "audio/webm", "transcribe", "hi-IN")
     assert "internet" in err.value.message
+
+
+def test_expired_audio_is_not_sent_even_without_new_upload(voice, audio_bytes):
+    c, fake, settings = voice
+    fake.fail_modes = {"translit"}
+    t = upload(c, audio_bytes).json()
+    from app.database import get_db
+    with get_db(settings) as conn:
+        conn.execute("UPDATE transcriptions SET audio_delete_after = '2000-01-01T00:00:00+00:00'")
+        conn.commit()
+    fake.fail_modes = set()
+    t = c.post(f"/api/transcriptions/{t['id']}/outputs/roman").json()
+    assert t["roman_status"] == "failed" and "retention" in t["roman_error"]
+    assert list(settings.audio_dir.iterdir()) == []

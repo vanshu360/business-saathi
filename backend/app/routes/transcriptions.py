@@ -29,6 +29,7 @@ def upload(file: UploadFile = File(...), language: str = Form("unknown"),
 
 @router.get("/{tid}")
 def get_one(tid: int, conn: sqlite3.Connection = Depends(db_conn)) -> dict:
+    service.cleanup_expired_audio(conn)
     row = repo.get(conn, SHOP, tid)
     if row is None:
         raise NotFound("Recording not found")
