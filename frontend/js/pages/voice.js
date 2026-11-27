@@ -12,8 +12,10 @@ const STATUS_TEXT = { pending: "Waiting", processing: "Working…", done: "Ready
 let recorder = null;
 let timer = null;
 let languagesCache = null;
+let pageVisit = 0; // bumps on every route change so late replies from an old page are ignored
 
 export function stopVoice() {
+  pageVisit += 1;
   clearInterval(timer);
   if (recorder && recorder.state !== "inactive") { recorder.onstop = null; recorder.stop(); }
   if (recorder) recorder.stream.getTracks().forEach((t) => t.stop());
@@ -120,7 +122,7 @@ function renderResults(app, t) {
   const lang = t.language_detected ? ` · detected ${html(t.language_detected)}` : "";
   app.querySelector("#results").innerHTML = `<div class="card"><h2>What the customer said</h2>
     <div class="transcripts">${cards}</div>
-    <p class="muted">${t.duration_seconds}s audio${lang} · Sarvam requests: ${t.request_count} of ${t.requests_planned} · est. ₹${t.cost_so_far_inr.toFixed(2)}
+    <p class="muted">${t.duration_seconds}s audio${lang} · Sarvam requests sent: ${t.request_count}${t.request_count > t.requests_planned ? ` (${t.requests_planned} outputs + retries)` : ""} · est. ₹${t.cost_so_far_inr.toFixed(2)}
       · recording ${t.audio_stored ? "stored temporarily" : "deleted"}${t.reused ? " · same audio as before, nothing re-sent" : ""}</p></div>`;
   app.querySelectorAll("[data-retry]").forEach((b) => b.addEventListener("click", () =>
     withBusy(b, "Retrying…", async () => {
@@ -131,9 +133,10 @@ function renderResults(app, t) {
 }
 
 async function runOutput(app, id, output) {
+  const visit = pageVisit;
   try {
     const t = await api.post(`/api/transcriptions/${id}/outputs/${output}`);
-    renderResults(app, t);
+    if (visit === pageVisit) renderResults(app, t);
     return t;
   } catch (err) {
     toast(err.message, true);
@@ -149,22 +152,27 @@ async function sendRecording(app, blob, seconds) {
   form.append("language", app.querySelector("#lang").value);
   form.append("consent", "true");
   form.append("duration_seconds", seconds.toFixed(2));
+  const visit = pageVisit;
   let t;
   try {
     t = await api.post("/api/transcriptions", form);
   } catch (err) {
+    if (visit !== pageVisit) return;
     results.innerHTML = `<div class="card"><p class="error-text">${html(err.message)}</p></div>`;
     return;
   }
+  if (visit !== pageVisit) return;
   renderResults(app, t);
   await continueFlow(app, t);
 }
 
 // Runs the outputs still waiting, then (re)builds the review form unless the shopkeeper already edited it.
 async function continueFlow(app, t) {
+  const visit = pageVisit;
   if (t.original_status !== "done") return;
   for (const output of ["roman", "english"]) {
     if (t[`${output}_status`] === "pending") t = (await runOutput(app, t.id, output)) || t;
+    if (visit !== pageVisit) return;
   }
   const form = app.querySelector("#review #order-form");
   if (!app.querySelector("#review")) return;
