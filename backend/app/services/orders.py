@@ -24,7 +24,7 @@ DUPLICATE_WINDOW = timedelta(hours=24)
 
 
 def resolve_customer(conn: sqlite3.Connection, shop_id: int, data: OrderFields,
-                     is_demo: bool = False) -> Optional[int]:
+                     is_demo: bool = False, rename: bool = False) -> Optional[int]:
     """Finds the customer for an order, creating one only when no match exists."""
     if data.customer_id:
         if not customers_repo.get_customer(conn, shop_id, data.customer_id):
@@ -33,7 +33,7 @@ def resolve_customer(conn: sqlite3.Connection, shop_id: int, data: OrderFields,
     if data.customer_phone:
         existing = customers_repo.find_by_phone(conn, shop_id, data.customer_phone)
         if existing:
-            if data.customer_name and data.customer_name.strip() != existing["name"]:
+            if rename and data.customer_name and data.customer_name.strip() != existing["name"]:
                 customers_repo.update_customer(conn, existing["id"], data.customer_name.strip(),
                                                existing["phone"], existing.get("notes") or "")
             return existing["id"]
@@ -164,7 +164,7 @@ def update_order(conn, shop_id: int, order_id: int, data: OrderFields) -> dict:
             item["needs_review"] = False
             item["review_reason"] = ""
 
-    customer_id = resolve_customer(conn, shop_id, data, is_demo=order["is_demo"])
+    customer_id = resolve_customer(conn, shop_id, data, is_demo=order["is_demo"], rename=True)
     new_values = {
         "customer_id": customer_id,
         "delivery_date": data.delivery_date.isoformat() if data.delivery_date else None,
