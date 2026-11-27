@@ -180,8 +180,19 @@ def test_sarvam_client_sends_documented_fields():
     assert result.text == "namaste" and result.language_code == "hi-IN"
     assert seen["key"] == "secret-key"
     for field in ('name="model"', "saaras:v4", 'name="mode"', "translit", 'name="language_code"',
-                  json.dumps(["चावल", "Rice"], ensure_ascii=False), 'name="file"'):
+                  json.dumps(["चावल", "Rice"]), 'name="file"'):
         assert field in seen["body"]
+
+
+def test_sarvam_client_never_retries_on_its_own():
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        return httpx.Response(503, json={"error": {"message": "x"}})
+    with pytest.raises(SpeechError):
+        mocked_client(handler).transcribe(b"a", "a.webm", "audio/webm", "transcribe", "hi-IN")
+    assert len(calls) == 1
 
 
 @pytest.mark.parametrize("status,words", [(403, "API key"), (429, "limit"), (503, "busy"),
@@ -191,6 +202,13 @@ def test_sarvam_errors_become_friendly_messages(status, words):
     with pytest.raises(SpeechError) as err:
         client.transcribe(b"a", "a.webm", "audio/webm", "transcribe", "hi-IN")
     assert words in err.value.message and "secret" not in err.value.message
+
+
+def test_unreadable_sarvam_answer_is_friendly():
+    client = mocked_client(lambda r: httpx.Response(200, text="not json"))
+    with pytest.raises(SpeechError) as err:
+        client.transcribe(b"a", "a.webm", "audio/webm", "transcribe", "hi-IN")
+    assert "unreadable" in err.value.message
 
 
 def test_network_failure_does_not_crash():

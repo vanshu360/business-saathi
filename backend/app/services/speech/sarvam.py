@@ -1,14 +1,15 @@
-"""Sarvam Saaras v4 REST client (server side only; the API key never reaches the browser)."""
-import json
+"""Sarvam Saaras v4 client using the official sarvamai SDK (server side only; the key never reaches the browser)."""
 from dataclasses import dataclass
 from typing import Optional
 
 import httpx
+from sarvamai import SarvamAI
+from sarvamai.core.api_error import ApiError
 
-SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text"
 MODEL = "saaras:v4"
 PRICE_PER_MINUTE_INR = 0.49  # pay-as-you-go, billed per second, before GST (docs checked 27-11-2026)
 MAX_SECONDS = 30  # REST limit; longer audio needs the Batch API
+NO_SDK_RETRIES = {"max_retries": 0}  # each attempt is billed, so retries stay a visible shopkeeper action
 
 
 @dataclass
@@ -38,32 +39,29 @@ ERRORS_BY_STATUS = {
 class SarvamClient:
     def __init__(self, api_key: str, timeout: float = 60.0,
                  transport: Optional[httpx.BaseTransport] = None):
-        self._api_key = api_key
-        self._client = httpx.Client(timeout=timeout, transport=transport)
+        self._sdk = SarvamAI(api_subscription_key=api_key,
+                             httpx_client=httpx.Client(timeout=timeout, transport=transport))
 
     def transcribe(self, audio: bytes, filename: str, mime: str, mode: str,
                    language_code: str, keyterms: Optional[list[str]] = None) -> SpeechResult:
-        data = {"model": MODEL, "mode": mode, "language_code": language_code}
-        if keyterms:
-            data["keyterms"] = json.dumps(keyterms[:50], ensure_ascii=False)
+        extra = {"keyterms": keyterms[:50]} if keyterms else {}
         try:
-            res = self._client.post(
-                SARVAM_STT_URL, headers={"api-subscription-key": self._api_key},
-                data=data, files={"file": (filename, audio, mime)})
+            res = self._sdk.speech_to_text.transcribe(
+                file=(filename, audio, mime), model=MODEL, mode=mode, language_code=language_code,
+                request_options=NO_SDK_RETRIES, **extra)
+        except ApiError as err:
+            status = err.status_code or 0
+            if 200 <= status < 300:
+                raise SpeechError("Sarvam sent an unreadable answer. Please retry.")
+            raise SpeechError(ERRORS_BY_STATUS.get(status, f"Sarvam returned error {status}. Please retry."))
         except httpx.TimeoutException:
             raise SpeechError("Sarvam took too long to answer. Please retry.")
         except httpx.HTTPError:
             raise SpeechError("Could not reach Sarvam. Check the internet connection and retry.")
-        if res.status_code != 200:
-            message = ERRORS_BY_STATUS.get(res.status_code, f"Sarvam returned error {res.status_code}. Please retry.")
-            raise SpeechError(message)
-        try:
-            body = res.json()
         except ValueError:
             raise SpeechError("Sarvam sent an unreadable answer. Please retry.")
-        return SpeechResult(text=(body.get("transcript") or "").strip(),
-                            language_code=body.get("language_code"),
-                            language_probability=body.get("language_probability"))
+        return SpeechResult(text=(res.transcript or "").strip(), language_code=res.language_code,
+                            language_probability=res.language_probability)
 
 
 def estimate_cost_inr(seconds: float, requests: int) -> float:
