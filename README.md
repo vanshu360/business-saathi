@@ -27,6 +27,18 @@ cp .env.example .env     # put your key after SARVAM_API_KEY= (optional)
 docker compose up --build
 ```
 
+### Add your Sarvam key (local only)
+
+1. Get a key at https://dashboard.sarvam.ai.
+2. `cp .env.example .env`, open `.env`, and write the key after `SARVAM_API_KEY=` (no quotes, no spaces).
+3. `.env` is in `.gitignore`: never commit it, and never paste the key into code or the browser.
+4. Check the key with one real call (each run is one request, ≈ ₹0.05 for a 6 s clip):
+
+```bash
+cd backend && pip install -r requirements.txt
+python ../scripts/sarvam_first_call.py path/to/order.wav transcribe   # or translit / translate
+```
+
 Open http://localhost:8000. Data lives in the Docker volume `saathi_data` and survives restarts
 (`docker compose down -v` deletes it).
 
@@ -51,7 +63,7 @@ The microphone works on `http://localhost`. On another device it needs HTTPS (br
 Browser (HTML/CSS/JS, MediaRecorder)
    │  audio + language + consent
    ▼
-FastAPI ──► Sarvam Saaras v4 REST (3 requests: transcribe, translit, translate)
+FastAPI ──► Sarvam Saaras v4 via the sarvamai SDK (3 requests: transcribe, translit, translate)
    │            key stays on the server (SARVAM_API_KEY)
    ├─► rule-based extractor (original transcript; Roman/English only cross-check)
    └─► SQLite (orders, items, history, transcripts)
