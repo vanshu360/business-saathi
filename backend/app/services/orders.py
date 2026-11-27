@@ -33,8 +33,12 @@ def resolve_customer(conn: sqlite3.Connection, shop_id: int, data: OrderFields,
     if data.customer_phone:
         existing = customers_repo.find_by_phone(conn, shop_id, data.customer_phone)
         if existing:
-            if rename and data.customer_name and data.customer_name.strip() != existing["name"]:
-                customers_repo.update_customer(conn, existing["id"], data.customer_name.strip(),
+            name = (data.customer_name or "").strip()
+            if name and name.casefold() != existing["name"].casefold():
+                if not rename:
+                    raise InvalidRequest(f"This phone number is saved for {existing['name']}. "
+                                         "Use that name or check the phone number.")
+                customers_repo.update_customer(conn, existing["id"], name,
                                                existing["phone"], existing.get("notes") or "")
             return existing["id"]
         if not data.customer_name:

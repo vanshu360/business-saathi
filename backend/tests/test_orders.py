@@ -182,7 +182,9 @@ def test_correcting_customer_name_with_same_phone_is_saved(client):
     assert order["customer_name"] == "Ramesh Kumar"
 
 
-def test_new_order_with_known_phone_keeps_saved_name(client):
+def test_new_order_with_known_phone_and_other_name_is_refused(client):
     client.post("/api/orders", json=manual_order(customer_name="Ramesh", customer_phone="9876543211"))
-    order = client.post("/api/orders", json=manual_order(customer_name="Suresh", customer_phone="9876543211")).json()
+    res = client.post("/api/orders", json=manual_order(customer_name="Suresh", customer_phone="9876543211"))
+    assert res.status_code == 400 and "Ramesh" in res.json()["detail"]
+    order = client.post("/api/orders", json=manual_order(customer_name="ramesh", customer_phone="9876543211")).json()
     assert order["customer_name"] == "Ramesh"
