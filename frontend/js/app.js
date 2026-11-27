@@ -27,6 +27,7 @@ async function route() {
   document.querySelectorAll(".sidebar nav a").forEach((a) =>
     a.classList.toggle("active", a.dataset.route === nav));
   document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("menu-toggle").setAttribute("aria-expanded", "false");
   app.innerHTML = '<p class="muted">Loading…</p>';
   try {
     await render(m, params);
