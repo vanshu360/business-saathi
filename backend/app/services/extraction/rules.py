@@ -15,7 +15,7 @@ from .vocabulary import (AM_PM, CLOCK_MARKERS, DATE_WORDS, DATIVE_MARKERS, HONOR
 
 DEVANAGARI_DIGITS = str.maketrans("०१२३४५६७८९", "0123456789")
 PHONE_RE = re.compile(r"(?:\+?91[\s-]?)?([6-9](?:[\s-]?\d){9})(?!\d)")
-CLOCK_RE = re.compile(r"^(\d{1,2})(?::(\d{2}))?$")
+CLOCK_RE = re.compile(r"^(\d{1,2})(?:[:.]([0-5]\d))?$")
 NUMBER_RE = re.compile(r"^\d+(?:\.\d+)?$")
 
 
