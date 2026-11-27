@@ -77,6 +77,7 @@ async function startRecording(app) {
     toast("Microphone permission was denied. Allow the microphone in the browser and try again.", true);
     return;
   }
+  if (!mic.isConnected) { stream.getTracks().forEach((t) => t.stop()); return; }
   const mime = pickMime();
   const chunks = [];
   recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
@@ -122,7 +123,11 @@ function renderResults(app, t) {
     <p class="muted">${t.duration_seconds}s audio${lang} · Sarvam requests: ${t.request_count} of ${t.requests_planned} · est. ₹${t.cost_so_far_inr.toFixed(2)}
       · recording ${t.audio_stored ? "stored temporarily" : "deleted"}${t.reused ? " · same audio as before, nothing re-sent" : ""}</p></div>`;
   app.querySelectorAll("[data-retry]").forEach((b) => b.addEventListener("click", () =>
-    withBusy(b, "Retrying…", async () => { await runOutput(app, t.id, b.dataset.retry); })));
+    withBusy(b, "Retrying…", async () => {
+      const output = b.dataset.retry;
+      const next = await runOutput(app, t.id, output);
+      if (next && next[`${output}_status`] === "done") await continueFlow(app, next);
+    })));
 }
 
 async function runOutput(app, id, output) {
@@ -152,10 +157,18 @@ async function sendRecording(app, blob, seconds) {
     return;
   }
   renderResults(app, t);
+  await continueFlow(app, t);
+}
+
+// Runs the outputs still waiting, then (re)builds the review form unless the shopkeeper already edited it.
+async function continueFlow(app, t) {
   if (t.original_status !== "done") return;
   for (const output of ["roman", "english"]) {
-    if (t[`${output}_status`] !== "done") t = (await runOutput(app, t.id, output)) || t;
+    if (t[`${output}_status`] === "pending") t = (await runOutput(app, t.id, output)) || t;
   }
+  const form = app.querySelector("#review #order-form");
+  if (!app.querySelector("#review")) return;
+  if (form && form.dataset.edited) { toast("New transcript ready. Your edits were kept, please compare them."); return; }
   await showReview(app, t);
 }
 
@@ -174,6 +187,8 @@ async function showReview(app, t) {
   } catch (err) {
     slot.innerHTML = `<p class="notice warn">Could not read the order automatically (${html(err.message)}). Fill it in below.</p>${renderOrderForm({}, "Confirm and save order")}`;
   }
-  bindSaveOrder(slot.querySelector("#order-form"), () => ({ source: "voice", transcription_id: t.id }));
+  const form = slot.querySelector("#order-form");
+  form.addEventListener("input", () => { form.dataset.edited = "1"; }, { once: true });
+  bindSaveOrder(form, () => ({ source: "voice", transcription_id: t.id }));
   slot.scrollIntoView({ behavior: "smooth", block: "start" });
 }
