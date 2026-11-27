@@ -1,0 +1,15 @@
+:root {
+  --green: #1f5f3f;
+  --mint: #d8f0e3;
+  --bg: #faf7f0;
+  --text: #2b2b2b;
+  --card: #ffffff;
+  --danger: #a32020;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 17px; }
+h1 { color: var(--green); }
+.setup-check { max-width: 640px; margin: 40px auto; padding: 0 16px; }
+.card { background: var(--card); border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.ok { color: var(--green); font-weight: 600; }
+.warn { color: var(--danger); font-weight: 600; }
