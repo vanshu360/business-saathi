@@ -252,3 +252,24 @@ These rules override anything above that disagrees.
 6. **Demo vs real data.** Demo rows are stored with `is_demo = 1`. The UI shows a "DEMO" badge on every demo customer, order and product, a banner while demo data exists, and a one-click "Remove demo data". Dashboard numbers show how many are demo. Demo order numbers start with `DEMO-`. Demo data is never mixed into real phone numbers (fake numbers only).
 7. **Code size check.** At the end, a script counts non-blank, non-comment lines of our own source (backend, frontend, tests reported separately; docs and dependencies excluded) to confirm at least 300 meaningful lines.
 8. **Focused MVP.** No payments, UPI, GST/accounting, inventory, suppliers, delivery tracking, WhatsApp or chatbot features.
+
+## 12. Revised scope for Round 2 (27-11-2026)
+
+The hackathon brief asks for "one core flow that works end to end, not a full product". This section overrides earlier sections where they disagree.
+
+**Core flow:** choose language → record (≤ 30 s) → Saaras v4 (original, Roman, English) → rule-based extraction → editable review → Confirm and Save → reopen the saved order.
+
+**Kept:** simple dashboard, basic order list/history, manual entry fallback, built-in grocery word list (used for extraction and `keyterms`), Docker Compose.
+
+**Dropped from the UI:** customer management screens, product catalogue editor, settings page, demo-data loader, multi-shop/auth. The existing customer/product APIs stay because orders use them.
+
+**Batch API deferred:** recordings auto-stop at 30 seconds (Saaras REST limit). Longer recordings are a documented limitation.
+
+| # | Milestone |
+|---|---|
+| 1 | Skeleton, Docker, database (done) |
+| 2 | Orders API: draft/confirm, status, idempotency, history (done) |
+| 3 | Rule-based extraction + `/api/extract` |
+| 4 | Sarvam Saaras v4 REST: 3 outputs, original saved first, per-output retry, no duplicate requests, cost estimate |
+| 5 | Core UI: voice screen, review/edit, confirm, saved order view, simple dashboard and history, manual entry |
+| 6 | Demo readiness: retention clean-up, README, demo script, final tests, line count |
