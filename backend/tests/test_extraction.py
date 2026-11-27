@@ -134,3 +134,4 @@ def test_half_hours_compact_pm_and_verb_do():
     assert run("2 kg rice today 6p.m.").delivery_time == "18:00"
     r = run("chawal de do aur aadha kilo chini")
     assert ("Sugar", 0.5, "kg") in items(r)
+    assert items(run("likh ek aur aadha kilo chawal")) == [("Rice", 1.5, "kg")]

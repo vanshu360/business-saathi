@@ -44,7 +44,7 @@ def _join_halves(tokens: list[str]) -> list[str]:
             out.append(f"{_number(tokens[i + 1]) + 0.5:g}")
             i += 2
             continue
-        after_verb = i > 0 and tokens[i - 1] in VERBS_BEFORE_DO and not NUMBER_RE.match(tokens[i])
+        after_verb = i > 0 and tokens[i - 1] in VERBS_BEFORE_DO and tokens[i] in ("do", "दो")
         if n is not None and not after_verb and i + 2 < len(tokens) and tokens[i + 1] in ("and", "aur", "और"):
             j = i + 3 if tokens[i + 2] == "a" and i + 3 < len(tokens) else i + 2
             if tokens[j] in HALF_WORDS:
