@@ -174,3 +174,9 @@ def test_order_numbers_increment(client):
     n1 = client.post("/api/orders", json=manual_order()).json()["order_number"]
     n2 = client.post("/api/orders", json=manual_order()).json()["order_number"]
     assert int(n2.rsplit("-", 1)[1]) == int(n1.rsplit("-", 1)[1]) + 1
+
+
+def test_correcting_customer_name_with_same_phone_is_saved(client):
+    oid = client.post("/api/orders", json=manual_order(customer_name="Ramesh", customer_phone="9876543210")).json()["id"]
+    order = client.put(f"/api/orders/{oid}", json=manual_order(customer_name="Ramesh Kumar", customer_phone="9876543210")).json()
+    assert order["customer_name"] == "Ramesh Kumar"

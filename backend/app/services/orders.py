@@ -33,6 +33,9 @@ def resolve_customer(conn: sqlite3.Connection, shop_id: int, data: OrderFields,
     if data.customer_phone:
         existing = customers_repo.find_by_phone(conn, shop_id, data.customer_phone)
         if existing:
+            if data.customer_name and data.customer_name.strip() != existing["name"]:
+                customers_repo.update_customer(conn, existing["id"], data.customer_name.strip(),
+                                               existing["phone"], existing.get("notes") or "")
             return existing["id"]
         if not data.customer_name:
             raise InvalidRequest("Please enter the customer's name for this new phone number")
