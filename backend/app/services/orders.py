@@ -73,6 +73,9 @@ def get_order_details(conn, shop_id: int, order_id: int) -> dict:
         raise NotFound("Order not found")
     order["items"] = orders_repo.get_items(conn, order_id)
     order["history"] = orders_repo.get_history(conn, order_id)
+    order["allowed_next_statuses"] = sorted(ALLOWED_MOVES[order["status"]])
+    order["can_confirm"] = order["status"] == "draft"
+    order["can_edit"] = order["status"] in EDITABLE
     order["transcription"] = None
     if order["transcription_id"]:
         row = conn.execute(

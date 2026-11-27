@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import Settings, load_settings
 from .database import init_db
 from .errors import AppError
-from .routes import customers, orders, products, system
+from .routes import customers, dashboard, extract, orders, products, settings as settings_routes, system
 
 FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
 
@@ -20,7 +20,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
 
     app = FastAPI(title="Business Saathi", version="0.1.0")
     app.state.settings = settings
-    for module in (system, products, customers, orders):
+    for module in (system, dashboard, settings_routes, products, customers, orders, extract):
         app.include_router(module.router)
 
     @app.exception_handler(AppError)

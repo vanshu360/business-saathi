@@ -32,6 +32,8 @@ def init_db(settings: Settings) -> None:
             "INSERT OR IGNORE INTO shops (id, name, created_at) VALUES (?, ?, ?)",
             (DEFAULT_SHOP_ID, "My Shop", utc_now()),
         )
+        from .catalogue_seed import seed_catalogue
+        seed_catalogue(conn, DEFAULT_SHOP_ID)
 
 
 @contextmanager
